@@ -1,0 +1,8 @@
+# Environments
+.venv
+.env
+
+# File directories
+archive/
+gbif_downloads/
+gbif_processed/
