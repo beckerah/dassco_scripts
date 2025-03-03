@@ -3,23 +3,44 @@ import requests
 import time
 import os
 from dotenv import load_dotenv
+import re
 
 # Load environment variables
 load_dotenv()
 
 # Get output folder path from .env
 output_folder_path = os.getenv("output_folder_path", "./")
+year = os.getenv("YEAR", "2024") # Default to 2024 if not set in .env
 
 def fetch_literature(dataset_key):
-    # Search for publications based by datasetKey and year published
-    url = f"https://api.gbif.org/v1/literature/search?datasetKey={dataset_key}&year=2024"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        return data.get("results", [])  # Returns a list of publications
-    else:
-        print(f"Failed to fetch data for {dataset_key}: {response.status_code}")
-        return []
+    all_results = []
+    offset = 0  # Allows for pagination in search results
+    limit = 300  # Maximum limit allowed by GBIF API
+    
+    while True:
+        url = f"https://api.gbif.org/v1/literature/search?gbifDatasetKey={dataset_key}&year={year}&limit={limit}&offset={offset}"
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            results = data.get("results", [])
+
+            print(f"Fetched {len(results)} results for datasetKey {dataset_key}, offset {offset}")  # Debugging line
+
+            if not results:
+                break  # No more results, exit loop
+            
+            all_results.extend(results)  # Append all results
+            offset += limit  # Move to the next page
+
+            time.sleep(1)  # Avoid hitting API rate limits
+
+        else:
+            print(f"Failed to fetch data for {dataset_key}: {response.status_code}")
+            break
+
+    print(f"Total results fetched for {dataset_key}: {len(all_results)}")  # Debugging line
+    return all_results
 
 def main(input_file, output_file):
     # Read dataset keys from spreadsheet
@@ -34,7 +55,7 @@ def main(input_file, output_file):
         publications = fetch_literature(dataset_key)
         for pub in publications:
             all_results.append({
-                "datasetKey": dataset_key,
+                "datasetKey": dataset_key,  # Ensure datasetKey is correctly assigned
                 "title": pub.get("title", "N/A"),
                 "authors": pub.get("authors", "N/A"),
                 "source": pub.get("source", "N/A"),
@@ -57,22 +78,44 @@ def main(input_file, output_file):
                 "topics": pub.get("topics", "N/A"),
                 "gbif_download_key": pub.get("gbifDownloadKey", "N/A")
             })
-        time.sleep(1)  # Avoid hitting API rate limits
     
     # Convert to DataFrame
     results_df = pd.DataFrame(all_results)
 
+    results_df.to_csv(os.path.join(output_folder_path, "all_results.csv"), index=False)  # Save raw data to csv
+    print(f"Saved raw data to {output_folder_path}/all_results.csv")
+
     # Add publishingInstitution and datasetName to results_df
     input_df_renamed = input_df[["datasetKey", "publisher", "datasetName"]].rename(columns={"publisher": "datasetPublisher"})
-    merged_df = pd.merge(input_df_renamed, results_df, on='datasetKey', how='right')
+    merged_df = pd.merge(results_df, input_df_renamed, on='datasetKey', how='left')
 
-    # Additional processing needed
+    # Obtain total count of unique publications
+    unique_publications_count = merged_df['title'].nunique()
+    print(f"Total count of unique publications: {unique_publications_count}")
 
-    # Save dataframe to CSV
-    merged_df.to_csv(output_file, index=False)
+    # Create subsets of data by datasetPublisher
+    publisher_groups = merged_df.groupby('datasetPublisher')
+
+    # Obtain count of unique publications by datasetPublisher
+    unique_publications_by_publisher = publisher_groups['title'].nunique().reset_index()
+    unique_publications_by_publisher.columns = ['datasetPublisher', 'unique_publications_count']
+
+    # Save subsets to separate sheets in same excel file; counts should also be saved in separate sheet
+    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+        merged_df.to_excel(writer, sheet_name='All Publications', index=False)
+        unique_publications_by_publisher.to_excel(writer, sheet_name='Unique Publications Count', index=False)
+        
+        for publisher, group in publisher_groups:
+            # Get unique publications only
+            unique_titles = group[['title']].drop_duplicates()
+            # Sanitize sheet name (Excel limits: max 31 chars, no special chars like [\/*?:])
+            sanitized_name = re.sub(r'[\\/*?:\[\]]', '_', str(publisher))[:31]
+            # Save unique publications per publisher
+            unique_titles.to_excel(writer, sheet_name=sanitized_name, index=False)
+
     print(f"Saved results to {output_file}")
 
 if __name__ == "__main__":
     input_file = os.path.join(output_folder_path, "all_publishers_dataset_counts.csv") # Construct input file path
-    output_file = os.path.join(output_folder_path, "gbif_publications.csv")  # Construct output file path
+    output_file = os.path.join(output_folder_path, "gbif_publications.xlsx")  # Construct output file path
     main(input_file, output_file)
