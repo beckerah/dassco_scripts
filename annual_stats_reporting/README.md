@@ -1,8 +1,8 @@
-### This folder contains scripts for obtaining annual GBIF stats for reporting purposes
+## This folder contains scripts for obtaining annual GBIF stats for reporting purposes
 
 A GBIF user account is required to download data using these scripts. If you don't already have one, you can obtain an account at [GBIF.org](https://www.gbif.org/).
 
-##### GBIF Occurrence Search
+### GBIF Occurrence Search
 
 The [gbifOccurrenceSearch.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/gbifOccurrenceSearch.py) script searches for occurrence records in GBIF published by specified institutions.
 
@@ -29,7 +29,7 @@ As written, the [gbifOccurrenceSearch.py](https://github.com/beckerah/dassco_scr
 
 For each publisher, a zip folder containing a CSV file listing all the search results, is downloaded from GBIF. 
 
-##### Processing Script for Occurrence Data
+### Processing Script for Occurrence Data
 
 The [occurrenceProcessing.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/occurrenceProcessing.py) script takes the output from the [gbifOccurrenceSearch.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/gbifOccurrenceSearch.py) script and creates publisher-level and dataset-level summaries of total and unique counts.
 
@@ -38,7 +38,7 @@ Once you have the zip files, run the [occurrenceProcessing.py](https://github.co
 - all_publishers_summary.csv - This includes occurrence counts for each publisher
 - duplicate_occurrences.csv - This is a complete list of all duplicate occurrences
 
-##### GBIF Publication Search
+### GBIF Publication Search
 
 The [gbifPublicationSearch.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/gbifPublicationSearch.py) script takes the dataset keys from the all_publishers_dataset_counts.csv file created by the processing script above, and searches for publications in gbif that reference those datasets. 
 
