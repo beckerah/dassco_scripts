@@ -50,7 +50,7 @@ def process_existing_zip_files(publishers, zip_folder_path):
             csv_files = glob.glob(os.path.join(output_folder, "*.csv"))
             for csv_file in csv_files:
                 print(f"Reading CSV file: {csv_file}")
-                df = pd.read_csv(csv_file, dtype=str, delimiter="\t")
+                df = pd.read_csv(csv_file, dtype=str, delimiter="\t", on_bad_lines="warn")
                 combined_df = pd.concat([combined_df, df], ignore_index=True)
 
         # Create group of rows where catalogNumber is null or empty
@@ -60,6 +60,10 @@ def process_existing_zip_files(publishers, zip_folder_path):
         unique_non_null_ids = non_null_ids.drop_duplicates(subset="catalogNumber", keep="first")
         # Add rows with null or empty catalogNumber back to df after duplicates have been removed
         unique_catalogNumbers = pd.concat([unique_non_null_ids, blank_or_null_ids], ignore_index=True)
+
+        # Save unique catalog numbers list for complete dataset
+        unique_catalogNumbers.to_csv(f"{output_folder}/{publisher_name}unique_catalogNumbers.csv", index=False)
+        print(f"Unique catalogNumbers for {publisher_name} saved: {output_folder}/{publisher_name}_unique_catalogNumbers.csv")
 
         # Create duplicates df
         duplicates = non_null_ids[non_null_ids.duplicated(subset="catalogNumber", keep=False)]
@@ -92,10 +96,6 @@ def process_existing_zip_files(publishers, zip_folder_path):
             .reset_index(name="duplicatesCountedInOtherDatasets")
         )
 
-        # Debugging: Print duplicate counts before merging
-        # print("\n--- Duplicate Counts (Before Merging) ---")
-        # print(duplicate_counts.iloc[0:10,2:6])
-
         # Ensure datasetKey exists before merging
         if "datasetKey" not in all_dataset_counts.columns:
             print("Error: datasetKey column is missing in all_dataset_counts!")
@@ -118,10 +118,6 @@ def process_existing_zip_files(publishers, zip_folder_path):
         else:
             all_dataset_counts = all_dataset_counts.merge(duplicate_counts, on="datasetKey", how="left")
             all_dataset_counts["duplicatesCountedInOtherDatasets"] = all_dataset_counts["duplicatesCountedInOtherDatasets"].fillna(0).astype(int)
-
-        # Debugging: Print after merge
-        # print("\n--- Dataset Counts (After Merging) ---")
-        # print(all_dataset_counts.iloc[0:10,2:6])
 
         # Compute unique specimen count
         all_dataset_counts["preservedSpecimenCountUnique"] = (

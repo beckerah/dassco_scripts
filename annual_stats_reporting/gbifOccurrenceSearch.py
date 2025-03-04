@@ -40,7 +40,6 @@ def download_gbif_data(publisher_uuid, publisher_name):
         f"publishingOrg = {publisher_uuid}",
         "basisOfRecord = PRESERVED_SPECIMEN",
         "occurrenceStatus = PRESENT",
-        f"eventDate <= {max_date}",
     )
     
     # Request the download

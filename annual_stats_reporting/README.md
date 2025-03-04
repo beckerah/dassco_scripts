@@ -4,7 +4,7 @@ A GBIF user account is required to download data using these scripts. If you don
 
 ### GBIF Occurrence Search
 
-The [gbifOccurrenceSearch.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/gbifOccurrenceSearch.py) script searches for occurrence records in GBIF published by specified institutions.
+The [gbifOccurrenceSearch.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/gbifOccurrenceSearch.py) script searches for occurrence records in GBIF published by specified institutions. It makes use of GBIF's asynchronous download service.
 
 To compile the list of occurrences by institution, you'll need the UUID for each publisher. Some institutions are listed as multiple publishers, for example NHMD publishes as both *Natural History Museum of Denmark* and *Botanical Garden & Museum, Natural History Museum of Denmark*. If you don't know a publisher's UUID, you can obtain it using the [publisherUUID.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/publisherUUID.py) script.
 
@@ -14,17 +14,15 @@ You'll then need to fill in the variables in the .env file:
 - GBIF_USER is your the username associated with your GBIF account
 - GBIF_PASSWORD is the password to log into your GBIF account
 - GBIF_EMAIL is the email address associated with your GBIF account
-- MAX_DATE is the latest date you want to include in the search
 - ZIP_FOLDER_PATH is the folder the downloaded zip files from GBIF will be saved in
 - OUTPUT_FOLDER_PATH is the folder all of the processed data will be saved in
 
-As written, the [gbifOccurrenceSearch.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/gbifOccurrenceSearch.py) script searches for occurrences by publisher, where the basis of record is Preserved Specimen, the occurrence status is Present, and the event date is prior to or equal to the MAX_DATE as provided in the .env file. 
+As written, the [gbifOccurrenceSearch.py](https://github.com/beckerah/dassco_scripts/blob/main/annual_stats_reporting/gbifOccurrenceSearch.py) script searches for occurrences by publisher, where the basis of record is Preserved Specimen and the occurrence status is Present. We don't include a date filter because these are unreliable in the data.
 
     query = (
             f"publishingOrg = {publisher_uuid}",
             "basisOfRecord = PRESERVED_SPECIMEN",
             "occurrenceStatus = PRESENT",
-            f"eventDate <= {max_date}",
     )
 
 For each publisher, a zip folder containing a CSV file listing all the search results, is downloaded from GBIF. 
@@ -37,6 +35,8 @@ Once you have the zip files, run the [occurrenceProcessing.py](https://github.co
 - all_publishers_dataset_counts.csv - This includes occurrence counts for each dataset, grouped by publisher
 - all_publishers_summary.csv - This includes occurrence counts for each publisher
 - duplicate_occurrences.csv - This is a complete list of all duplicate occurrences
+
+All unique rows are also saved to CSV files for each publisher, in case that data needs to be cross-referenced. 
 
 ### GBIF Publication Search
 
