@@ -1,3 +1,3 @@
 # dassco_scripts
 
-This is a repo to house general scripts for dassco
+These scripts have been moved to the [DaSSCo-Digiation repo](https://github.com/NHMDenmark/DaSSCo-Digitization).
